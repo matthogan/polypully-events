@@ -1,4 +1,4 @@
-module github.com/codejago/polypully/events
+module github.com/matthogan/polypully/events
 
 go 1.21.5
 
