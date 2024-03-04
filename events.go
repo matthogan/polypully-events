@@ -81,6 +81,7 @@ func (e *Events) init(config *EventsConfig) error {
 	if p == nil {
 		return fmt.Errorf("failed to create producer")
 	}
+	slog.Info("producer connected", "config", config)
 	e.ctx, e.cancel = context.WithCancel(context.Background())
 	e.producer = p
 	e.config = config
