@@ -76,10 +76,10 @@ func (e *Events) init(config *EventsConfig) error {
 	}
 	p, err := kafka.NewProducer(&kafkaConfig)
 	if err != nil {
-		return fmt.Errorf("Failed to create producer: %s", err)
+		return fmt.Errorf("failed to create producer: %v", err)
 	}
 	if p == nil {
-		return fmt.Errorf("Failed to create producer")
+		return fmt.Errorf("failed to create producer")
 	}
 	e.ctx, e.cancel = context.WithCancel(context.Background())
 	e.producer = p
@@ -98,16 +98,16 @@ func (e *Events) Close() {
 	if e.producer != nil {
 		e.producer.Close()
 	}
-	slog.Info("Producer shutdown complete")
+	slog.Info("producer shutdown complete")
 }
 
 // Notify sends an event
 func (e *Events) Notify(event *Event) error {
 	e.producerMutex.Lock()
 	defer e.producerMutex.Unlock()
-	slog.Debug("Sending event", "event", event)
+	slog.Debug("sending event", "event", event)
 	if e.producer == nil {
-		return fmt.Errorf("Producer not initialized")
+		return fmt.Errorf("producer not initialized")
 	}
 	err := e.producer.Produce(&kafka.Message{
 		TopicPartition: kafka.TopicPartition{Topic: &e.config.Topic, Partition: kafka.PartitionAny},
@@ -116,7 +116,7 @@ func (e *Events) Notify(event *Event) error {
 		Headers:        e.getHeaders(event),
 	}, nil)
 	if err != nil {
-		return fmt.Errorf("Failed to send event: %s", err)
+		return fmt.Errorf("failed to send event: %s", err)
 	}
 	return nil
 }
@@ -153,15 +153,15 @@ func (e *Events) handleDeliveryReports() {
 			switch ev := e.(type) {
 			case *kafka.Message:
 				if ev.TopicPartition.Error != nil {
-					slog.Error("Failed to deliver message: %v", ev.TopicPartition.Error)
+					slog.Error("event", "delivery failed", ev.TopicPartition.Error)
 				} else {
-					slog.Debug("Successfully produced record to topic %s partition [%d] @ offset %s %v",
-						*ev.TopicPartition.Topic, ev.TopicPartition.Partition, ev.TopicPartition.Offset.String(), ev)
+					slog.Debug(fmt.Sprintf("successfully produced to topic %s partition [%d] @ offset %s %v",
+						*ev.TopicPartition.Topic, ev.TopicPartition.Partition, ev.TopicPartition.Offset.String(), ev))
 				}
 			case kafka.Error:
-				slog.Error("Failed to deliver message: %s %s", ev.Code().String(), ev.Error())
+				slog.Error("event", "failed", ev.Code().String(), "error", ev.Error())
 			default:
-				slog.Debug("Ignored event: %v", ev)
+				slog.Debug("event", "ignored", ev)
 			}
 		}
 	}
@@ -169,16 +169,16 @@ func (e *Events) handleDeliveryReports() {
 
 func validate(config *EventsConfig) error {
 	if config.BootstrapServers == "" {
-		return fmt.Errorf("BootstrapServers not set")
+		return fmt.Errorf("bootstrap servers not set")
 	}
 	if config.ClientId == "" {
-		return fmt.Errorf("ClientId not set")
+		return fmt.Errorf("clientId not set")
 	}
 	if config.Acks == "" {
 		config.Acks = "all"
 	}
 	if config.Topic == "" {
-		return fmt.Errorf("Topic not set")
+		return fmt.Errorf("topic not set")
 	}
 	return nil
 }
